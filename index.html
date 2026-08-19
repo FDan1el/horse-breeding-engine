@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trot Heritage — Breeding Engine v1.0 Test</title>
+<style>
+  :root{
+    --bg: #0f1410;
+    --panel: #171e18;
+    --panel-2: #1e2620;
+    --line: #2c352d;
+    --text: #e8ece6;
+    --dim: #8fa08f;
+    --accent: #c9a15a;
+    --accent-2: #6b8f5e;
+    --danger: #b1553f;
+    --font-display: 'Georgia', 'Iowan Old Style', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--font-body); line-height:1.5;
+    padding:0 0 80px 0;
+  }
+  header{
+    padding:36px 24px 28px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, #141a15, var(--bg));
+  }
+  header .eyebrow{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); margin-bottom:8px;
+  }
+  h1{
+    font-family:var(--font-display); font-size:32px; margin:0 0 6px;
+    font-weight:400; letter-spacing:.01em;
+  }
+  header p{color:var(--dim); margin:0; font-size:14px; max-width:640px;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  .stage{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:28px;}
+  @media (max-width: 860px){ .stage{grid-template-columns:1fr;} }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:20px;
+  }
+  .card h2{
+    font-family:var(--font-display); font-weight:400; font-size:18px;
+    margin:0 0 14px; display:flex; align-items:center; gap:8px;
+  }
+  .role-dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .sire .role-dot{background:var(--accent);}
+  .dam .role-dot{background:var(--accent-2);}
+  select{
+    width:100%; padding:9px 10px; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); border-radius:6px; font-size:14px; margin-bottom:14px;
+  }
+  .stat-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12.5px; padding:4px 0; border-bottom:1px dotted var(--line);
+    font-family:var(--font-mono);
+  }
+  .stat-row:last-child{border-bottom:none;}
+  .stat-name{color:var(--dim);}
+  .bar-bg{
+    flex:1; height:5px; background:var(--panel-2); border-radius:3px;
+    margin:0 10px; overflow:hidden;
+  }
+  .bar-fill{height:100%; border-radius:3px;}
+  .sire .bar-fill{background:var(--accent);}
+  .dam .bar-fill{background:var(--accent-2);}
+  .index-badge{
+    display:inline-block; font-family:var(--font-display); font-size:22px;
+    padding:2px 10px; border-radius:5px; border:1px solid var(--line);
+  }
+  .meta-line{font-size:12px; color:var(--dim); margin-top:8px;}
+  .btn{
+    display:block; width:100%; margin:24px 0 0; padding:14px;
+    background:var(--accent); color:#1a1a12; border:none; border-radius:8px;
+    font-size:15px; font-weight:600; letter-spacing:.02em; cursor:pointer;
+    font-family:var(--font-body); transition:filter .15s;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{filter:brightness(.95);}
+  .result{
+    margin-top:28px; background:var(--panel); border:1px solid var(--accent);
+    border-radius:8px; padding:24px; display:none;
+  }
+  .result.show{display:block;}
+  .result h2{font-family:var(--font-display); font-weight:400; font-size:20px; margin:0 0 4px;}
+  .result .sub{color:var(--dim); font-size:13px; margin-bottom:18px;}
+  .foal-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:18px;
+  }
+  @media (max-width: 700px){ .foal-grid{grid-template-columns:1fr;} }
+  .compare-row{
+    display:grid; grid-template-columns:90px 1fr 40px; gap:8px;
+    align-items:center; font-family:var(--font-mono); font-size:12px; padding:5px 0;
+  }
+  .compare-row .lbl{color:var(--dim);}
+  .compare-track{position:relative; height:16px; background:var(--panel-2); border-radius:4px;}
+  .compare-mid{
+    position:absolute; top:-3px; width:2px; height:22px; background:var(--dim);
+  }
+  .compare-actual{
+    position:absolute; top:2px; width:12px; height:12px; border-radius:50%;
+    background:var(--accent); transform:translateX(-6px); box-shadow:0 0 0 2px var(--bg);
+  }
+  .dist-section{margin-top:20px; padding-top:18px; border-top:1px solid var(--line);}
+  .dist-section h3{font-family:var(--font-display); font-weight:400; font-size:15px; margin:0 0 12px; color:var(--dim);}
+  .dist-bars{display:flex; align-items:flex-end; gap:6px; height:80px;}
+  .dist-bar{
+    flex:1; background:var(--accent-2); border-radius:3px 3px 0 0;
+    position:relative; min-height:2px;
+  }
+  .dist-bar .pct{
+    position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+    font-size:10px; font-family:var(--font-mono); color:var(--dim); white-space:nowrap;
+  }
+  .dist-labels{display:flex; gap:6px; margin-top:6px;}
+  .dist-labels span{flex:1; text-align:center; font-size:9.5px; color:var(--dim); font-family:var(--font-mono);}
+  .inbreed-note{
+    margin-top:16px; padding:10px 12px; background:var(--panel-2); border-radius:6px;
+    font-size:12.5px; color:var(--dim); border-left:2px solid var(--danger);
+  }
+  .inbreed-note.clear{border-left-color:var(--accent-2);}
+  footer{
+    max-width:1080px; margin:40px auto 0; padding:16px 24px; color:var(--dim);
+    font-size:11.5px; border-top:1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Trot Heritage · Breeding Engine</div>
+    <h1>Tenyésztési motor — teszt v1.0</h1>
+    <p>Válassz mént és kancát, majd fedeztess. A motor valószínűségi eloszlásból generál csikót — nem egyszerű átlagot. Ez egy böngészős fejlesztői tesztkörnyezet, nem a végleges mobil UI.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="card sire">
+      <h2><span class="role-dot"></span>Mén</h2>
+      <select id="sireSelect"></select>
+      <div id="sireStats"></div>
+      <div class="meta-line" id="sireMeta"></div>
+    </div>
+    <div class="card dam">
+      <h2><span class="role-dot"></span>Kanca</h2>
+      <select id="damSelect"></select>
+      <div id="damStats"></div>
+      <div class="meta-line" id="damMeta"></div>
+    </div>
+  </div>
+
+  <button class="btn" id="breedBtn">Fedeztetés indítása</button>
+
+  <div class="result" id="result">
+    <h2 id="foalName">Csikó</h2>
+    <div class="sub" id="foalSub"></div>
+
+    <div class="foal-grid">
+      <div>
+        <div id="compareRows"></div>
+      </div>
+      <div>
+        <div class="stat-row" style="margin-bottom:10px;">
+          <span class="stat-name">Tenyésztési index (előzetes)</span>
+          <span class="index-badge" id="foalIndex">—</span>
+        </div>
+        <div class="meta-line" id="foalIndexNote"></div>
+        <div class="inbreed-note" id="inbreedNote"></div>
+      </div>
+    </div>
+
+    <div class="dist-section">
+      <h3>Ez a párosítás — várható eredményeloszlás (100 szimulált fedeztetésből)</h3>
+      <div class="dist-bars" id="distBars"></div>
+      <div class="dist-labels" id="distLabels"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="wrap">
+  Breeding Engine tesztkörnyezet · trotheritage.com · fiktív adatok, kalibráció folyamatban.
+  A százalékok játéktervezési paraméterek, nem véglegesített tudományos súlyozás.
+</footer>
+
+<script>
+/* ============ ADATMODELL ============
+   Belső genetikai profil: 0-100 skála, forrás: spec 7-8. pont
+   A játékos-nézetben ebből vezetjük le az A-E indexet és a
+   fedeztetési valószínűségi eloszlást.
+*/
+const TRAITS = [
+  {key:'speed', label:'Speed'},
+  {key:'accel', label:'Acceleration'},
+  {key:'stamina', label:'Stamina'},
+  {key:'sprint', label:'Sprint Aptitude'},
+  {key:'mile', label:'Mile Aptitude'},
+  {key:'middle', label:'Middle Aptitude'},
+  {key:'staying', label:'Staying Aptitude'},
+  {key:'soundness', label:'Soundness'},
+  {key:'trainability', label:'Trainability'},
+  {key:'temperament', label:'Temperament'}
+];
+
+const HORSES = {
+  sires: [
+    { id:'s1', name:'Northwind Cavalier', profile:{speed:88,accel:82,stamina:70,sprint:90,mile:85,middle:60,staying:35,soundness:80,trainability:75,temperament:70}, reliability:0.82, index:'A', ancestors:['s1a','s1b','s1c'] },
+    { id:'s2', name:'Ironbark Legacy', profile:{speed:74,accel:71,stamina:88,sprint:55,mile:78,middle:85,staying:82,soundness:88,trainability:82,temperament:78}, reliability:0.65, index:'A-', ancestors:['s2a','s2b','s1a'] },
+    { id:'s3', name:'Duskfire Rebel', profile:{speed:80,accel:85,stamina:60,sprint:88,mile:72,middle:50,staying:30,soundness:65,trainability:60,temperament:55}, reliability:0.41, index:'B+', ancestors:['s3a','s3b','s3c'] }
+  ],
+  dams: [
+    { id:'d1', name:'Velvet Solstice', profile:{speed:79,accel:76,stamina:83,sprint:65,mile:82,middle:80,staying:70,soundness:85,trainability:88,temperament:84}, reliability:0.58, index:'A-', ancestors:['d1a','d1b','s1a'] },
+    { id:'d2', name:'Amber Thistledown', profile:{speed:83,accel:80,stamina:65,sprint:85,mile:79,middle:55,staying:40,soundness:72,trainability:70,temperament:66}, reliability:0.73, index:'A', ancestors:['d2a','d2b','d2c'] },
+    { id:'d3', name:'Quiet Meridian', profile:{speed:68,accel:65,stamina:90,sprint:40,mile:65,middle:85,staying:92,soundness:90,trainability:79,temperament:88}, reliability:0.36, index:'B', ancestors:['d3a','d3b','s3a'] }
+  ]
+};
+
+/* ============ ÖRÖKLÉSI / VARIANCIA MODELL ============
+   spec 9-10. pont: 50/50 nukleáris kiindulás + anyai hatás + variancia.
+   Ez egy leegyszerűsített, kalibrálható placeholder — nem végleges paraméter. */
+function gaussianRandom(mean, sd){
+  let u=0, v=0;
+  while(u===0) u = Math.random();
+  while(v===0) v = Math.random();
+  const z = Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+  return mean + z*sd;
+}
+
+function inbreedingCoefficient(sire, dam){
+  const shared = sire.ancestors.filter(a => dam.ancestors.includes(a));
+  // egyszerűsített: minden közös ős kb 6.25%-ot ad (placeholder, kalibrálandó)
+  return Math.min(shared.length * 0.0625, 0.25);
+}
+
+function breed(sire, dam){
+  const inbreeding = inbreedingCoefficient(sire, dam);
+  // anyai hatás: a spec 14/G pontja (anya-csikó korreláció > apa-csikó) alapján
+  // enyhén magasabb anyai súlyt alkalmazunk placeholderként, nem véglegesített arány
+  const maternalWeight = 0.53;
+  const paternalWeight = 0.47;
+
+  const foalProfile = {};
+  TRAITS.forEach(t => {
+    const mid = sire.profile[t.key]*paternalWeight + dam.profile[t.key]*maternalWeight;
+    // variancia: soundness-re nagyobb szórás inbreeding esetén (placeholder logika)
+    let sd = 6.5;
+    if(t.key === 'soundness') sd += inbreeding * 18;
+    const val = Math.max(20, Math.min(99, Math.round(gaussianRandom(mid, sd))));
+    foalProfile[t.key] = {mid: Math.round(mid), val};
+  });
+
+  return {foalProfile, inbreeding};
+}
+
+function scoreToIndex(avg){
+  if(avg >= 88) return 'A+';
+  if(avg >= 82) return 'A';
+  if(avg >= 76) return 'A-';
+  if(avg >= 70) return 'B+';
+  if(avg >= 63) return 'B';
+  if(avg >= 56) return 'B-';
+  if(avg >= 47) return 'C';
+  if(avg >= 36) return 'D';
+  return 'E';
+}
+
+function overallScore(profile, isFoalObj){
+  const weights = {speed:1,accel:0.8,stamina:1,sprint:0.6,mile:0.6,middle:0.6,staying:0.6,soundness:1.1,trainability:0.7,temperament:0.6};
+  let sum=0, wsum=0;
+  TRAITS.forEach(t=>{
+    const v = isFoalObj ? profile[t.key].val : profile[t.key];
+    sum += v * weights[t.key];
+    wsum += weights[t.key];
+  });
+  return sum/wsum;
+}
+
+/* ============ RENDER ============ */
+function populateSelects(){
+  const sireSel = document.getElementById('sireSelect');
+  const damSel = document.getElementById('damSelect');
+  HORSES.sires.forEach(h => sireSel.innerHTML += `<option value="${h.id}">${h.name} · ${h.index}</option>`);
+  HORSES.dams.forEach(h => damSel.innerHTML += `<option value="${h.id}">${h.name} · ${h.index}</option>`);
+}
+
+function renderProfile(horse, containerId, metaId, barClass){
+  const c = document.getElementById(containerId);
+  c.innerHTML = TRAITS.map(t => {
+    const v = horse.profile[t.key];
+    return `<div class="stat-row">
+      <span class="stat-name">${t.label}</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${v}%"></div></div>
+      <span>${v}</span>
+    </div>`;
+  }).join('');
+  document.getElementById(metaId).innerHTML =
+    `Tenyésztési index: <strong>${horse.index}</strong> · Reliability: ${(horse.reliability*100).toFixed(0)}%`;
+}
+
+function currentSire(){ return HORSES.sires.find(h => h.id === document.getElementById('sireSelect').value); }
+function currentDam(){ return HORSES.dams.find(h => h.id === document.getElementById('damSelect').value); }
+
+function refreshParents(){
+  const sire = currentSire(), dam = currentDam();
+  renderProfile(sire, 'sireStats', 'sireMeta');
+  renderProfile(dam, 'damStats', 'damMeta');
+}
+
+function renderResult(sire, dam, breedResult){
+  const {foalProfile, inbreeding} = breedResult;
+  document.getElementById('result').classList.add('show');
+  document.getElementById('foalName').textContent = `${sire.name} × ${dam.name} — csikó`;
+  document.getElementById('foalSub').textContent = 'Genetikai profil a szimulált eloszlásból, nem egyszerű átlag.';
+
+  document.getElementById('compareRows').innerHTML = TRAITS.map(t=>{
+    const d = foalProfile[t.key];
+    return `<div class="compare-row">
+      <span class="lbl">${t.label}</span>
+      <div class="compare-track">
+        <div class="compare-mid" style="left:${d.mid}%"></div>
+        <div class="compare-actual" style="left:${d.val}%"></div>
+      </div>
+      <span>${d.val}</span>
+    </div>`;
+  }).join('') + `<div class="meta-line" style="margin-top:8px;">Szürke vonal = várt középérték · pont = tényleges csikó-érték</div>`;
+
+  const avg = overallScore(foalProfile, true);
+  const idx = scoreToIndex(avg);
+  document.getElementById('foalIndex').textContent = idx;
+  document.getElementById('foalIndexNote').textContent =
+    'Előzetes, alacsony reliabilityvel — a versenypályán bizonyítania kell.';
+
+  const inbreedEl = document.getElementById('inbreedNote');
+  if(inbreeding > 0){
+    inbreedEl.classList.remove('clear');
+    inbreedEl.textContent = `Közös ős kimutatva a pedigrében. Becsült inbreeding-koefficiens: ${(inbreeding*100).toFixed(1)}%. Ez enyhén növelheti a soundness-szórást — nem determinisztikus büntetés.`;
+  } else {
+    inbreedEl.classList.add('clear');
+    inbreedEl.textContent = 'Nincs kimutatható közös ős a rögzített generációkban.';
+  }
+
+  renderDistribution(sire, dam);
+}
+
+function renderDistribution(sire, dam){
+  // 100 szimulált fedeztetés kategorizálva — illusztráció, nem a végleges kalibráció
+  const N = 400;
+  const buckets = {Klasszis:0, 'Nagyon jó':0, Jó:0, Átlagos:0, Gyenge:0};
+  for(let i=0;i<N;i++){
+    const r = breed(sire, dam);
+    const s = overallScore(r.foalProfile, true);
+    if(s>=85) buckets['Klasszis']++;
+    else if(s>=75) buckets['Nagyon jó']++;
+    else if(s>=63) buckets['Jó']++;
+    else if(s>=50) buckets['Átlagos']++;
+    else buckets['Gyenge']++;
+  }
+  const max = Math.max(...Object.values(buckets));
+  const barsEl = document.getElementById('distBars');
+  const labelsEl = document.getElementById('distLabels');
+  barsEl.innerHTML = Object.entries(buckets).map(([k,v])=>{
+    const pct = (v/N*100).toFixed(0);
+    const h = Math.max(4, (v/max)*100);
+    return `<div class="dist-bar" style="height:${h}%"><span class="pct">${pct}%</span></div>`;
+  }).join('');
+  labelsEl.innerHTML = Object.keys(buckets).map(k=>`<span>${k}</span>`).join('');
+}
+
+document.getElementById('sireSelect').addEventListener('change', refreshParents);
+document.getElementById('damSelect').addEventListener('change', refreshParents);
+document.getElementById('breedBtn').addEventListener('click', ()=>{
+  const sire = currentSire(), dam = currentDam();
+  const r = breed(sire, dam);
+  renderResult(sire, dam, r);
+  document.getElementById('result').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+populateSelects();
+refreshParents();
+</script>
+
+</body>
+</html>

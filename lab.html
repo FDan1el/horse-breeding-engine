@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trot Heritage — Teljes Motor Teszt Labor</title>
+<style>
+  :root{
+    --bg:#0f1410; --panel:#171e18; --panel-2:#1e2620; --line:#2c352d;
+    --text:#e8ece6; --dim:#8fa08f; --accent:#c9a15a; --accent-2:#6b8f5e;
+    --blue:#5b8ac9; --orange:#c98a5b; --danger:#b1553f;
+    --font-display:'Georgia',serif; --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'SF Mono','Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.5;padding:0 0 60px;}
+  header{padding:28px 20px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#141a15,var(--bg));}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+  h1{font-family:var(--font-display);font-size:26px;margin:0 0 6px;font-weight:400;}
+  header p{color:var(--dim);margin:0;font-size:13px;max-width:640px;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;margin-top:18px;}
+  .card h2{font-family:var(--font-display);font-weight:400;font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#1a1a12;font-size:11px;font-family:var(--font-mono);font-weight:700;}
+  label{display:block;font-size:12px;color:var(--dim);margin:10px 0 4px;}
+  select, input[type=checkbox]{accent-color:var(--accent);}
+  select{width:100%;padding:8px 10px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:6px;font-size:13px;}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.row{grid-template-columns:1fr;}}
+  .check-row{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;}
+  .btn{display:block;width:100%;margin-top:16px;padding:12px;background:var(--accent);color:#1a1a12;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body);}
+  .btn:hover{filter:brightness(1.08);}
+  .result-box{margin-top:12px;padding:12px 14px;background:var(--panel-2);border-radius:6px;font-size:13px;display:none;}
+  .result-box.show{display:block;}
+  .swatch{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .index-pill{display:inline-block;padding:2px 9px;border-radius:5px;border:1px solid var(--line);font-family:var(--font-display);font-size:15px;}
+  .fill-bar-wrap{margin-top:10px;}
+  .fill-bar-track{position:relative;height:28px;background:var(--panel-2);border-radius:6px;overflow:hidden;border:1px solid var(--line);}
+  .fill-seg{position:absolute;top:0;height:100%;}
+  .fill-label{position:absolute;top:50%;left:8px;transform:translateY(-50%);font-family:var(--font-mono);font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);z-index:2;}
+  .legend{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--dim);flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend .dot{width:9px;height:9px;border-radius:50%;}
+  .meta-line{font-size:11.5px;color:var(--dim);margin-top:4px;}
+  footer{max-width:900px;margin:30px auto 0;padding:14px 20px;color:var(--dim);font-size:11px;border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Trot Heritage · Belső Teszt Labor</div>
+    <h1>Teljes motor teszt — tenyésztés + takarmány + tréner</h1>
+    <p>Ez egy fejlesztői tesztoldal, NEM a végleges játék UI-ja. A háttérben ugyanazok a képletek futnak (JS-be portolva), mint a repó Python motorjaiban — csak itt böngészőben, azonnal kipróbálható, vizuálisan.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2><span class="step-num">1</span>Tenyésztés — mén + kanca kiválasztása</h2>
+    <div class="row">
+      <div>
+        <label>Mén (alapító populációból)</label>
+        <select id="sireSelect"></select>
+      </div>
+      <div>
+        <label>Kanca (alapító populációból)</label>
+        <select id="damSelect"></select>
+      </div>
+    </div>
+    <button class="btn" id="breedBtn">Fedeztetés — csikó generálása</button>
+    <div class="result-box" id="foalResult"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">2</span>Takarmányozás — beszállító + kombó választás</h2>
+    <div class="row">
+      <div>
+        <label>Alap-alapanyag minősége (széna + zab)</label>
+        <select id="hayQuality">
+          <option value="rossz">Rossz</option>
+          <option value="kozepes">Közepes</option>
+          <option value="jo" selected>Jó</option>
+          <option value="kivalo">Kiváló</option>
+        </select>
+      </div>
+      <div>
+        <label>Anyakanca gondoskodás</label>
+        <div class="check-row"><input type="checkbox" id="kancatap"><label style="margin:0" for="kancatap">Kancatáp használata (+2%)</label></div>
+      </div>
+    </div>
+    <label style="margin-top:14px">Koncentrátum-kategóriák (egyszerre több is választható)</label>
+    <div class="check-row"><input type="checkbox" id="catCsiko"><label style="margin:0" for="catCsiko">Csikó-kategória</label></div>
+    <div class="check-row"><input type="checkbox" id="catVerseny"><label style="margin:0" for="catVerseny">Verseny-kategória</label></div>
+    <div class="check-row"><input type="checkbox" id="catVitamin"><label style="margin:0" for="catVitamin">Vitaminos kiegészítő</label></div>
+    <div class="meta-line" id="feedPreview">Takarmány-bónusz: 0%</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">3</span>Tréner kiválasztása</h2>
+    <label>Elérhető trénerek</label>
+    <select id="trainerSelect"></select>
+    <div class="meta-line" id="trainerPreview"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">4</span>Töltöttségi sáv — 55% genetika + 20% takarmány + 25% tréner</h2>
+    <button class="btn" id="calcBtn">Töltöttség kiszámítása</button>
+    <div class="fill-bar-wrap result-box" id="fillResult">
+      <div class="fill-bar-track" id="fillTrack">
+        <div class="fill-label" id="fillLabel"></div>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--blue)"></span>Genetika (max 55%)</span>
+        <span><span class="dot" style="background:var(--accent-2)"></span>Takarmány (max 20%)</span>
+        <span><span class="dot" style="background:var(--orange)"></span>Tréner (max 25%)</span>
+      </div>
+      <div class="meta-line" id="fillBreakdown"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="wrap">
+  Belső teszt labor · trotheritage.com · a szín/genetika/tréner konstansok a repó Python motorjaival azonosak.
+</footer>
+
+<script>
+/* ====== SZINGENETIKA (breeding_sim.py-bol portolva) ====== */
+const POP_ALLELE_FREQ = { E: 0.514, A: 0.918, G: 0.0075, Cr: 0.001 };
+const COLOR_RARITY = { Bay:'common', Chestnut:'common', Black:'uncommon', Gray:'rare', Palomino:'special' };
+const COLOR_HEX = { Bay:'#7a4a2b', Chestnut:'#a85c2e', Black:'#2b2620', Gray:'#9a9a95', Palomino:'#d4b06a' };
+
+function randGenotypeLocus(key){
+  const p = POP_ALLELE_FREQ[key];
+  const a1 = Math.random() < p ? 'dom' : 'rec';
+  const a2 = Math.random() < p ? 'dom' : 'rec';
+  return [a1, a2];
+}
+function inheritAllele(pair){ return pair[Math.random() < 0.5 ? 0 : 1]; }
+function breedColorGenotype(sireGeno, damGeno){
+  const out = {};
+  ['E','A','G','Cr'].forEach(locus => { out[locus] = [inheritAllele(sireGeno[locus]), inheritAllele(damGeno[locus])]; });
+  return out;
+}
+function hasDom(pair){ return pair.includes('dom'); }
+function colorPhenotype(geno){
+  const eDom = hasDom(geno.E), aDom = hasDom(geno.A), crDom = hasDom(geno.Cr);
+  let base = !eDom ? 'Chestnut' : (aDom ? 'Bay' : 'Black');
+  if(base === 'Chestnut' && crDom) base = 'Palomino';
+  const willGray = hasDom(geno.G);
+  const displayed = willGray ? 'Gray' : base;
+  return { born: base, willGray, displayed, rarity: COLOR_RARITY[displayed] || 'common' };
+}
+
+/* ====== TELJESITMENY-GENETIKA (breeding_sim.py-bol portolva) ====== */
+const TRAIT_CONFIG = {
+  speed:{h2:0.12,sd:12}, accel:{h2:0.15,sd:12}, stamina:{h2:0.18,sd:12},
+  sprint:{h2:0.124,sd:12}, mile:{h2:0.122,sd:12}, middle:{h2:0.122,sd:12}, staying:{h2:0.074,sd:12},
+  soundness:{h2:0.18,sd:14}, trainability:{h2:0.25,sd:12}, temperament:{h2:0.25,sd:12}
+};
+const TRAITS = Object.keys(TRAIT_CONFIG);
+const WEIGHTS = {speed:1,accel:0.8,stamina:1,sprint:0.6,mile:0.6,middle:0.6,staying:0.6,soundness:1.1,trainability:0.7,temperament:0.6};
+const POP_TRAIT_MEAN = 60;
+
+function gaussian(mean, sd){
+  let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  return mean + sd * Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+function clip(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+function overallScore(profile){
+  let s=0, wsum=0;
+  TRAITS.forEach(t => { s += profile[t]*WEIGHTS[t]; wsum += WEIGHTS[t]; });
+  return s/wsum;
+}
+function indexFromScore(avg){
+  if(avg>=88) return 'A+'; if(avg>=82) return 'A'; if(avg>=76) return 'A-';
+  if(avg>=70) return 'B+'; if(avg>=63) return 'B'; if(avg>=56) return 'B-';
+  if(avg>=47) return 'C'; if(avg>=36) return 'D'; return 'E';
+}
+
+function generateFounder(name){
+  const profile = {};
+  TRAITS.forEach(t => { profile[t] = Math.round(clip(gaussian(POP_TRAIT_MEAN, TRAIT_CONFIG[t].sd), 20, 99)); });
+  const colorGeno = { E:randGenotypeLocus('E'), A:randGenotypeLocus('A'), G:randGenotypeLocus('G'), Cr:randGenotypeLocus('Cr') };
+  return { name, profile, colorGeno, ancestors:[name+'_a', name+'_b'] };
+}
+
+function inbreedingCoeff(sire, dam){
+  const shared = sire.ancestors.filter(a => dam.ancestors.includes(a));
+  return Math.min(shared.length * 0.0625, 0.25);
+}
+function mendelianSegSd(trait, inbr){
+  const vg = TRAIT_CONFIG[trait].h2 * Math.pow(TRAIT_CONFIG[trait].sd, 2);
+  let segVar = 0.5 * vg;
+  const mult = (trait==='soundness') ? 2.2 : (trait==='trainability'||trait==='temperament' ? 1.3 : 1.05);
+  segVar *= (1 + (mult-1) * (inbr/0.25));
+  return Math.sqrt(segVar);
+}
+function trueGeneticValue(sire, dam, trait, inbr){
+  const mid = (sire.profile[trait]*0.5 + dam.profile[trait]*0.5);
+  const val = gaussian(mid, mendelianSegSd(trait, inbr)) + gaussian(0, 2.5);
+  return clip(val, 5, 99);
+}
+
+/* ====== NEVADAS (breeding_sim.py-bol portolva, egyszerusitve) ====== */
+function generateFoalName(sireName, damName){
+  const frag = (name) => {
+    const words = name.split(' ');
+    const w = words[Math.floor(Math.random()*words.length)];
+    const len = Math.min(w.length, 3 + Math.floor(Math.random()*3));
+    return w.slice(0, len);
+  };
+  let candidate = frag(sireName) + frag(damName);
+  candidate = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+  return candidate.slice(0, 18);
+}
+
+/* ====== TRENER MOTOR (trainer_sim.py-bol portolva) ====== */
+const TRAINER_ATTR_CONFIG = {
+  conditioning:{mean:60,sd:13}, speed_development:{mean:60,sd:13},
+  injury_prevention:{mean:60,sd:14}, psychological_conditioning:{mean:60,sd:12}, experience:{mean:50,sd:18}
+};
+const TRAINER_WEIGHTS = { conditioning:1.0, speed_development:1.1, injury_prevention:1.15, psychological_conditioning:0.85, experience:0.6 };
+const DISTANCE_CATS = ['sprint','mile','middle','staying'];
+const SPEC_LABELS = { sprint:'Sprint specialista', mile:'Mérföld specialista', middle:'Középtáv specialista', staying:'Hosszútáv specialista' };
+
+function generateTrainer(name){
+  const attrs = {};
+  Object.keys(TRAINER_ATTR_CONFIG).forEach(k => {
+    const cfg = TRAINER_ATTR_CONFIG[k];
+    attrs[k] = Math.round(clip(gaussian(cfg.mean, cfg.sd), 15, 99));
+  });
+  let s=0, wsum=0;
+  Object.keys(attrs).forEach(k => { s += attrs[k]*TRAINER_WEIGHTS[k]; wsum += TRAINER_WEIGHTS[k]; });
+  const overall = s/wsum;
+  const index = indexFromScore(overall);
+  const spec = DISTANCE_CATS[Math.floor(Math.random()*DISTANCE_CATS.length)];
+  return { name, attrs, overall: Math.round(overall*10)/10, index, spec, label: `${index} · ${SPEC_LABELS[spec]}` };
+}
+
+/* ====== TAKARMANY MOTOR (feeding_sim.py-bol portolva) ====== */
+const BASE_FEED_BONUS = { rossz:0, kozepes:2, jo:3.5, kivalo:5 };
+const COMBO_BONUS = 5, VITAMIN_BONUS = 5, MAX_FEED_BONUS = 15;
+const MATERNAL_HAY_BONUS = { rossz:0, kozepes:1, jo:2, kivalo:3 };
+const KANCATAP_BONUS = 2, MAX_MATERNAL_BONUS = 5;
+
+function calcAdultFeedBonus(quality, cats){
+  let bonus = BASE_FEED_BONUS[quality];
+  if(cats.has('csiko') && cats.has('verseny')) bonus += COMBO_BONUS;
+  if(cats.has('vitamin')) bonus += VITAMIN_BONUS;
+  return Math.min(bonus, MAX_FEED_BONUS);
+}
+function calcMaternalBonus(quality, kancatap){
+  let bonus = MATERNAL_HAY_BONUS[quality];
+  if(kancatap) bonus += KANCATAP_BONUS;
+  return Math.min(bonus, MAX_MATERNAL_BONUS);
+}
+
+/* ====== TELJES TOLTOTTSEGI SAV (55/20/25) ====== */
+const GENETIC_MAX_PCT = 55, FEEDING_MAX_PCT = 20, TRAINER_MAX_PCT = 25;
+const GENETIC_SCORE_MAX = 99, TRAINER_PRACTICAL_MAX = 99;
+
+function calcGeneticFillPct(score){ return Math.round((clip(score,5,99)/GENETIC_SCORE_MAX)*GENETIC_MAX_PCT*100)/100; }
+function calcTrainerRealizedPct(trainerScore){ return Math.round((Math.min(trainerScore,TRAINER_PRACTICAL_MAX)/100)*TRAINER_MAX_PCT*100)/100; }
+function calcFeedingRealizedPct(maternal, adult){ return Math.min(maternal+adult, FEEDING_MAX_PCT); }
+
+/* ====== ALLAPOT + UI ====== */
+let founders = { sires: [], dams: [] };
+let trainers = [];
+let currentFoal = null;
+
+function init(){
+  for(let i=1;i<=15;i++) founders.sires.push(generateFounder(`Sire${String(i).padStart(3,'0')}`));
+  for(let i=1;i<=15;i++) founders.dams.push(generateFounder(`Dam${String(i).padStart(3,'0')}`));
+  for(let i=1;i<=8;i++) trainers.push(generateTrainer(`Tréner ${i}`));
+
+  const sireSel = document.getElementById('sireSelect');
+  const damSel = document.getElementById('damSelect');
+  const trainerSel = document.getElementById('trainerSelect');
+  founders.sires.forEach(s => sireSel.innerHTML += `<option value="${s.name}">${s.name} (index: ${indexFromScore(overallScore(s.profile))})</option>`);
+  founders.dams.forEach(d => damSel.innerHTML += `<option value="${d.name}">${d.name} (index: ${indexFromScore(overallScore(d.profile))})</option>`);
+  trainers.forEach((t,i) => trainerSel.innerHTML += `<option value="${i}">${t.label}</option>`);
+  updateTrainerPreview();
+  updateFeedPreview();
+}
+
+function findFounder(name, list){ return list.find(f => f.name === name); }
+
+document.getElementById('breedBtn').addEventListener('click', () => {
+  const sire = findFounder(document.getElementById('sireSelect').value, founders.sires);
+  const dam = findFounder(document.getElementById('damSelect').value, founders.dams);
+  const inbr = inbreedingCoeff(sire, dam);
+
+  const tgvProfile = {};
+  TRAITS.forEach(t => { tgvProfile[t] = trueGeneticValue(sire, dam, t, inbr); });
+  const overall = overallScore(tgvProfile);
+  const index = indexFromScore(overall);
+
+  const foalColorGeno = breedColorGenotype(sire.colorGeno, dam.colorGeno);
+  const color = colorPhenotype(foalColorGeno);
+  const name = generateFoalName(sire.name, dam.name);
+
+  currentFoal = { name, index, score: overall, color };
+
+  const box = document.getElementById('foalResult');
+  box.classList.add('show');
+  box.innerHTML = `
+    <div><strong>${name}</strong></div>
+    <div style="margin-top:6px"><span class="swatch" style="background:${COLOR_HEX[color.displayed]}"></span>${color.displayed} <span style="color:var(--dim)">(ritkaság: ${color.rarity})</span>${color.willGray ? ' — színesen születik, őszül majd' : ''}</div>
+    <div style="margin-top:6px">Tenyésztési index: <span class="index-pill">${index}</span> <span style="color:var(--dim)">(genetikai pontszám: ${overall.toFixed(1)})</span></div>
+    <div class="meta-line">Inbreeding koefficiens: ${(inbr*100).toFixed(2)}%</div>
+  `;
+});
+
+function updateFeedPreview(){
+  const quality = document.getElementById('hayQuality').value;
+  const kancatap = document.getElementById('kancatap').checked;
+  const cats = new Set();
+  if(document.getElementById('catCsiko').checked) cats.add('csiko');
+  if(document.getElementById('catVerseny').checked) cats.add('verseny');
+  if(document.getElementById('catVitamin').checked) cats.add('vitamin');
+
+  const maternal = calcMaternalBonus(quality, kancatap);
+  const adult = calcAdultFeedBonus(quality, cats);
+  const total = calcFeedingRealizedPct(maternal, adult);
+  document.getElementById('feedPreview').textContent =
+    `Takarmány-bónusz: ${total.toFixed(1)}% (anyakanca: ${maternal}% + felnőtt kombó: ${adult}%, max 20%-ig)`;
+}
+['hayQuality','kancatap','catCsiko','catVerseny','catVitamin'].forEach(id => {
+  document.getElementById(id).addEventListener('change', updateFeedPreview);
+});
+
+function updateTrainerPreview(){
+  const t = trainers[document.getElementById('trainerSelect').value];
+  document.getElementById('trainerPreview').textContent = `Kiválasztva: ${t.label}`;
+}
+document.getElementById('trainerSelect').addEventListener('change', updateTrainerPreview);
+
+document.getElementById('calcBtn').addEventListener('click', () => {
+  if(!currentFoal){
+    alert('Előbb generálj egy csikót az 1. lépésben!');
+    return;
+  }
+  const t = trainers[document.getElementById('trainerSelect').value];
+  const quality = document.getElementById('hayQuality').value;
+  const kancatap = document.getElementById('kancatap').checked;
+  const cats = new Set();
+  if(document.getElementById('catCsiko').checked) cats.add('csiko');
+  if(document.getElementById('catVerseny').checked) cats.add('verseny');
+  if(document.getElementById('catVitamin').checked) cats.add('vitamin');
+
+  const maternal = calcMaternalBonus(quality, kancatap);
+  const adult = calcAdultFeedBonus(quality, cats);
+  const geneticPct = calcGeneticFillPct(currentFoal.score);
+  const feedingPct = calcFeedingRealizedPct(maternal, adult);
+  const trainerPct = calcTrainerRealizedPct(t.overall);
+  const total = geneticPct + feedingPct + trainerPct;
+
+  const box = document.getElementById('fillResult');
+  box.classList.add('show');
+  const track = document.getElementById('fillTrack');
+  const geneticW = (geneticPct/100)*100;
+  const feedW = (feedingPct/100)*100;
+  const trainerW = (trainerPct/100)*100;
+  track.innerHTML = `<div class="fill-seg" style="left:0%;width:${geneticW}%;background:var(--blue)"></div>`;
+  track.innerHTML += `<div class="fill-seg" style="left:${geneticW}%;width:${feedW}%;background:var(--accent-2)"></div>`;
+  track.innerHTML += `<div class="fill-seg" style="left:${geneticW+feedW}%;width:${trainerW}%;background:var(--orange)"></div>`;
+  track.innerHTML += `<div class="fill-label">${total.toFixed(2)}%</div>`;
+
+  document.getElementById('fillBreakdown').innerHTML =
+    `${currentFoal.name}: genetika ${geneticPct.toFixed(2)}% + takarmány ${feedingPct.toFixed(2)}% + tréner (${t.label}) ${trainerPct.toFixed(2)}% = <strong>${total.toFixed(2)}%</strong>`
+    + (total >= 100 ? ' <span style="color:var(--danger)">(HIBA: elerte a 100%-ot!)</span>' : ' (sosem éri el a 100%-ot)');
+});
+
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trot Heritage — Szezon szimulátor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;800&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bind:#2B1619; --bind-deep:#1B0D10; --leaf:#EDE7DB; --leaf-edge:#DCD3C2;
+  --ink:#1B1613; --ink-soft:#6B6156; --brass:#B4894A; --turf:#46654B; --flag:#9E3324;
+  --display:'Bitter',Georgia,serif; --body:'Archivo',-apple-system,sans-serif;
+  --data:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--bind);color:var(--leaf);font-family:var(--body);
+  line-height:1.55;padding-bottom:60px;
+  background-image:radial-gradient(ellipse at 50% -10%,rgba(180,137,74,.13),transparent 60%);
+}
+.wrap{max-width:940px;margin:0 auto;padding:0 18px;}
+header{padding:36px 18px 24px;border-bottom:2px solid var(--brass);}
+.stamp{font-family:var(--data);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,5vw,40px);margin:0 0 10px;line-height:1.05;}
+h1 em{font-style:italic;font-weight:400;color:var(--brass);}
+header p{margin:0;color:#C8BCAC;font-size:14px;max-width:60ch;}
+
+.panel{background:var(--leaf);color:var(--ink);border-radius:2px;padding:20px;margin-top:20px;
+  box-shadow:0 12px 28px -14px rgba(0,0,0,.7);}
+.panel h2{font-family:var(--display);font-size:18px;font-weight:600;margin:0 0 14px;}
+
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
+label{display:block;font-family:var(--data);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px;}
+select,input[type=number]{width:100%;padding:8px 10px;background:#F7F3EA;color:var(--ink);
+  border:1px solid var(--leaf-edge);border-radius:2px;font-size:14px;font-family:var(--body);}
+.btn{display:block;width:100%;margin-top:18px;padding:14px;background:var(--bind);
+  color:var(--leaf);border:none;border-radius:2px;font-size:15px;font-weight:600;
+  cursor:pointer;font-family:var(--body);letter-spacing:.02em;}
+.btn:hover{background:#3A1E22;}
+.btn:disabled{opacity:.5;cursor:default;}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--leaf-edge);margin-top:8px;}
+
+.ledger{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;
+  background:var(--leaf-edge);border:1px solid var(--leaf-edge);margin-bottom:16px;}
+.cell{background:#F7F3EA;padding:12px 10px;}
+.cell .k{font-family:var(--data);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft);}
+.cell .v{font-family:var(--data);font-size:19px;font-weight:600;margin-top:4px;}
+.cell .v.pos{color:var(--turf);}
+.cell .v.neg{color:var(--flag);}
+
+.log{background:#F7F3EA;border:1px solid var(--leaf-edge);padding:14px;
+  max-height:520px;overflow-y:auto;font-size:13px;}
+.log .season{font-family:var(--display);font-weight:600;font-size:15px;
+  border-bottom:1px solid var(--leaf-edge);padding-bottom:6px;margin:16px 0 10px;}
+.log .season:first-child{margin-top:0;}
+.log .ev{padding:3px 0;display:flex;gap:9px;}
+.log .tag{font-family:var(--data);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--leaf);background:var(--ink-soft);padding:2px 6px;border-radius:2px;
+  flex:none;height:fit-content;margin-top:2px;min-width:62px;text-align:center;}
+.tag.race{background:#4A5A7A;}
+.tag.win{background:var(--turf);}
+.tag.breed{background:#7A5418;}
+.tag.sale{background:var(--brass);color:var(--bind-deep);}
+.tag.buy{background:#6B6156;}
+.tag.vet{background:var(--flag);}
+.tag.foal{background:#8A6B3A;}
+.tag.prem{background:#3E6B5A;}
+.money{font-family:var(--data);font-weight:600;}
+.money.pos{color:var(--turf);}
+.money.neg{color:var(--flag);}
+
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+th{font-family:var(--data);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-soft);text-align:left;padding:6px 8px;border-bottom:1px solid var(--leaf-edge);}
+td{padding:6px 8px;border-bottom:1px dotted var(--leaf-edge);}
+td.num{font-family:var(--data);text-align:right;}
+.note{font-size:12.5px;color:var(--ink-soft);margin-top:10px;}
+.verdict{background:var(--bind);color:var(--leaf);padding:16px 18px;border-radius:2px;
+  margin-top:16px;border-left:3px solid var(--brass);}
+.verdict h3{font-family:var(--display);font-size:15px;margin:0 0 8px;font-weight:600;}
+.verdict p{margin:0 0 6px;font-size:13.5px;color:#D8CFC2;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="stamp">Trot Heritage · Motor-teszt</div>
+  <h1>Szezon<em> szimulátor</em></h1>
+  <p>Végigfuttat egy vagy több szezont a teljes motorláncon: tenyésztés → felnevelés → verseny → eladás. A kérdés nem az, hogy szép-e, hanem hogy <strong>összeáll-e a gazdaság</strong>. Beépítve a francia <strong>tenyésztői prémium</strong>: az általad tenyésztett ló nyereményének 15%-a a tiéd marad akkor is, ha eladtad.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>Beállítások</h2>
+    <div class="controls">
+      <div>
+        <label>Szezonok száma</label>
+        <select id="seasons">
+          <option value="1">1 szezon</option>
+          <option value="3">3 szezon</option>
+          <option value="6" selected>6 szezon</option>
+          <option value="12">12 szezon</option>
+        </select>
+      </div>
+      <div>
+        <label>Takarmány-stratégia</label>
+        <select id="feedStrategy">
+          <option value="rossz">Rossz (olcsó)</option>
+          <option value="kozepes">Közepes</option>
+          <option value="jo" selected>Jó</option>
+          <option value="kivalo">Kiváló (drága)</option>
+        </select>
+      </div>
+      <div>
+        <label>Koncentrátum</label>
+        <select id="concentrate">
+          <option value="none">Nincs</option>
+          <option value="basic">Táp</option>
+          <option value="full" selected>Táp + vitamin</option>
+        </select>
+      </div>
+      <div>
+        <label>Fedeztetési büdzsé</label>
+        <select id="studBudget">
+          <option value="cheap">Olcsó mén</option>
+          <option value="mid" selected>Közepes mén</option>
+          <option value="elite">Elit mén</option>
+        </select>
+      </div>
+      <div>
+        <label>Tréner szint</label>
+        <select id="trainerLevel">
+          <option value="cheap">Olcsó</option>
+          <option value="mid" selected>Közepes</option>
+          <option value="top">Élvonal</option>
+        </select>
+      </div>
+      <div>
+        <label>Yearlingek</label>
+        <select id="yearlingPolicy">
+          <option value="sell">Mind eladni</option>
+          <option value="keep" selected>Megtartani</option>
+          <option value="mixed">Gyengéket eladni</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="runBtn">Szezon(ok) lefuttatása</button>
+    <button class="btn secondary" id="compareBtn">Stratégiák összehasonlítása (6 és 12 szezon × 40 futtatás)</button>
+  </div>
+
+  <div class="panel" id="resultPanel" style="display:none">
+    <h2>Mérleg</h2>
+    <div class="ledger" id="ledger"></div>
+    <div id="verdict"></div>
+  </div>
+
+  <div class="panel" id="stablePanel" style="display:none">
+    <h2>Állomány a végén</h2>
+    <div id="stableTable"></div>
+  </div>
+
+  <div class="panel" id="logPanel" style="display:none">
+    <h2>Napló</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="panel" id="comparePanel" style="display:none">
+    <h2>Stratégiák összehasonlítása</h2>
+    <div id="compareTable"></div>
+    <p class="note">Minden stratégia 40× lefuttatva, azonos kezdőfeltételekkel (50 000 B$, 2 gyenge kanca, 2 versenyló). A 6 és 12 szezon összevetése mutatja, hogy a tenyésztés <strong>lassan térül meg</strong>. A tenyésztői prémium miatt a jó csikó eladás után is évekig fizet — ezért éri meg <em>minőségre</em> tenyészteni akkor is, ha nem tartod meg a lovat.</p>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   MOTOR-PORTOK — a Python modulok konstansaival azonos
+   ===================================================================== */
+
+/* --- véletlen --- */
+let SEED = 12345;
+function rnd(){ SEED = (SEED*1103515245 + 12345) & 0x7fffffff; return SEED/0x7fffffff; }
+function gauss(m,sd){ let u=0,v=0; while(u===0)u=rnd(); while(v===0)v=rnd();
+  return m + sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function clip(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+function pick(a){ return a[Math.floor(rnd()*a.length)]; }
+
+/* --- genetika (breeding_sim.py) --- */
+const TRAIT_CFG = {
+  speed:{h2:0.12,sd:12}, accel:{h2:0.15,sd:12}, stamina:{h2:0.18,sd:12},
+  sprint:{h2:0.124,sd:12}, mile:{h2:0.122,sd:12}, middle:{h2:0.122,sd:12},
+  staying:{h2:0.074,sd:12}, soundness:{h2:0.18,sd:14},
+  trainability:{h2:0.25,sd:12}, temperament:{h2:0.25,sd:12}
+};
+const TRAITS = Object.keys(TRAIT_CFG);
+const W = {speed:1,accel:0.8,stamina:1,sprint:0.6,mile:0.6,middle:0.6,staying:0.6,
+  soundness:1.1,trainability:0.7,temperament:0.6};
+const POP_MEAN = 60;
+
+function overall(p){ let s=0,w=0; TRAITS.forEach(t=>{s+=p[t]*W[t];w+=W[t];}); return s/w; }
+function gradeOf(a){
+  if(a>=88)return'A+'; if(a>=82)return'A'; if(a>=76)return'A-'; if(a>=70)return'B+';
+  if(a>=63)return'B'; if(a>=56)return'B-'; if(a>=47)return'C'; if(a>=36)return'D'; return'E';
+}
+function segSd(t,inbr){
+  const vg = TRAIT_CFG[t].h2*Math.pow(TRAIT_CFG[t].sd,2);
+  let v = 0.5*vg;
+  const m = t==='soundness'?2.2:(t==='trainability'||t==='temperament'?1.3:1.05);
+  return Math.sqrt(v*(1+(m-1)*(inbr/0.25)));
+}
+function breedFoal(sire,dam){
+  const inbr = 0;
+  const prof = {};
+  TRAITS.forEach(t=>{
+    const mid = sire.profile[t]*0.5 + dam.profile[t]*0.5;
+    prof[t] = clip(gauss(mid,segSd(t,inbr)) + gauss(0,2.5), 5, 99);
+  });
+  return prof;
+}
+
+/* --- szín (valós allélfrekvenciák) --- */
+const FREQ = {E:0.514,A:0.918,G:0.0075,Cr:0.001};
+const COLOR_HU = {Bay:'Pej',Chestnut:'Sárga',Black:'Fekete',Gray:'Szürke',Palomino:'Palomino'};
+function locus(k){ const p=FREQ[k]; return [rnd()<p?'d':'r', rnd()<p?'d':'r']; }
+function newColorGeno(){ return {E:locus('E'),A:locus('A'),G:locus('G'),Cr:locus('Cr')}; }
+function inherit(pair){ return pair[rnd()<0.5?0:1]; }
+function breedColor(s,d){ const o={}; ['E','A','G','Cr'].forEach(l=>{o[l]=[inherit(s[l]),inherit(d[l])];}); return o; }
+function hasDom(p){ return p.includes('d'); }
+function colorOf(g){
+  let base = !hasDom(g.E)?'Chestnut':(hasDom(g.A)?'Bay':'Black');
+  if(base==='Chestnut'&&hasDom(g.Cr)) base='Palomino';
+  return hasDom(g.G)?'Gray':base;
+}
+
+/* --- takarmány (feeding_sim.py) --- */
+const MATERNAL_HAY = {rossz:0,kozepes:1,jo:2,kivalo:3};
+const FOAL_BASE = {rossz:0,kozepes:1.2,jo:2.1,kivalo:3.0};
+const YEAR_BASE = {rossz:0,kozepes:0.8,jo:1.4,kivalo:2.0};
+function maternalBonus(q,kancatap){ return Math.min((MATERNAL_HAY[q]||0)+(kancatap?2:0),5); }
+function foalBonus(q,conc,vit){ return Math.min((FOAL_BASE[q]||0)+(conc?3:0)+(vit?3:0),9); }
+function yearBonus(q,conc,vit){ return Math.min((YEAR_BASE[q]||0)+(conc?2:0)+(vit?2:0),6); }
+
+/* --- töltöttségi sáv: 55 genetika + 20 takarmány + 25 tréner --- */
+function fillBar(geneticScore, feedPct, trainerScore){
+  const g = clip(geneticScore,5,99)/99*55;
+  const f = Math.min(feedPct,20);
+  const t = Math.min(trainerScore,99)/100*25;
+  return {genetic:g, feed:f, trainer:t, total:g+f+t};
+}
+
+/* --- tréner (trainer_sim.py) --- */
+const TR_CFG = {conditioning:[60,13],speed_development:[60,13],injury_prevention:[60,14],
+  psychological_conditioning:[60,12],experience:[50,18]};
+const TR_W = {conditioning:1.0,speed_development:1.1,injury_prevention:1.15,
+  psychological_conditioning:0.85,experience:0.6};
+const DIST_CATS = ['sprint','mile','middle','staying'];
+function makeTrainer(level){
+  const shift = level==='top'?16:(level==='cheap'?-14:0);
+  const a={}; let s=0,w=0;
+  Object.keys(TR_CFG).forEach(k=>{
+    a[k]=Math.round(clip(gauss(TR_CFG[k][0]+shift,TR_CFG[k][1]),15,99));
+    s+=a[k]*TR_W[k]; w+=TR_W[k];
+  });
+  const ov=s/w;
+  return {attrs:a, overall:ov, grade:gradeOf(ov), spec:pick(DIST_CATS),
+    fee: Math.round(250 + ov*22)};
+}
+
+/* --- zsoké (jockey_sim.py) — versenynapi módosító --- */
+const JOCKEY_SWING = {sprint:2.0,mile:3.5,middle:5.0,staying:6.0};
+function makeJockey(){
+  const cfg={pace:[50,15],start:[50,14],exp:[45,18],fit:[50,13],horseman:[50,14]};
+  const w={pace:1.2,start:1.0,exp:0.9,fit:0.8,horseman:1.1};
+  const a={}; let s=0,ws=0;
+  Object.keys(cfg).forEach(k=>{a[k]=clip(gauss(cfg[k][0],cfg[k][1]),10,99); s+=a[k]*w[k]; ws+=w[k];});
+  const ov=s/ws;
+  return {overall:ov, grade:gradeOf(ov), spec:pick(DIST_CATS), surface:pick(['turf','dirt'])};
+}
+function jockeyMod(j, band, surface){
+  let eff=j.overall;
+  eff += (j.spec===band)?10:-5;
+  eff += (j.surface===surface)?12:-6;
+  eff = clip(eff,5,99);
+  const swing = JOCKEY_SWING[band]/100;
+  const dev = clip((eff-50)/50,-1,1);
+  return 1 + dev*swing;
+}
+
+/* --- pályák (track_sim.py) --- */
+const TRACKS = [
+  {key:'creedon', name:'Creedon', surface:'dirt', bias:'korai sebesség', prestige:1, dist:['sprint']},
+  {key:'marlowe', name:'Marlowe', surface:'synthetic', bias:'semleges', prestige:2, dist:['sprint','mile']},
+  {key:'ashcombe',name:'Ashcombe',surface:'dirt', bias:'korai sebesség', prestige:3, dist:['sprint','mile']},
+  {key:'thornbury',name:'Thornbury',surface:'turf', bias:'kitartó hajrá', prestige:4, dist:['mile','middle']},
+  {key:'kingsmere',name:'Kingsmere',surface:'dirt', bias:'kitartás', prestige:5, dist:['mile','middle','staying']},
+  {key:'wrenfield',name:'Wrenfield',surface:'turf', bias:'kitartás', prestige:5, dist:['middle','staying']},
+];
+const DANGER = {synthetic:1.00, turf:2.41, dirt:3.51};
+function injuryRisk(surface, soundness){
+  const sf = clip(Math.pow(60/Math.max(20,soundness),1.4),0.35,2.2);
+  return Math.min(12, 0.9*DANGER[surface]*sf);
+}
+
+/* --- nyereménysávok (track_sim.py) --- */
+/* A dijletra VALOS aranyokra kalibralva. Referenciak (USD):
+     kis claiming        ~15-20 ezer
+     allowance nagy palyan  50-100 ezer
+       https://horseracingsense.com/what-is-a-stakes-race-in-horse-racing/
+     Grade 3 kuszob         75 ezer
+       https://www.liveabout.com/understanding-the-types-and-classes-of-horse-races-1880414
+     Grade 2 minimum       200 ezer
+     Grade 1 minimum       300 ezer
+       https://pennhorseracing.com/stories/racing-classes-thoroughbred-racing/
+     Kentucky Derby / Breeders' Cup  3 millio+
+       https://horseracingsense.com/what-is-a-stakes-race-in-horse-racing/
+   A jatek-valuta kb. 1 B$ = 5 USD aranyban skalazva. A LENYEG a
+   FELSO FAROK: a valodi klasszikusok tizszereset fizetik egy sima
+   G1-nek - ez hianyzott eddig a modellbol. */
+const BRACKETS = [
+  {key:'maiden', max:0,      label:'Még nem nyert', purse:3200},
+  {key:'b5',     max:5000,   label:'5 000 alatt',   purse:5000},
+  {key:'b20',    max:20000,  label:'20 000 alatt',  purse:11000},
+  {key:'b75',    max:75000,  label:'75 000 alatt',  purse:26000},
+  {key:'b250',   max:250000, label:'250 000 alatt', purse:60000},
+  {key:'open',   max:null,   label:'Nyílt',         purse:130000},
+];
+
+/* KLASSZIKUSOK - a felso farok. Szezononkent nehany futam, ahova csak
+   a legjobbak jutnak el. Ezek adjak meg egy kiugro lo valodi erteket,
+   es ezeken keresztul a tenyesztoi premium is nagysagrendet valt. */
+const CLASSICS = [
+  {key:'nemzeti',    label:'Nemzeti Díj',      minEarnings:70000,  purse:300000},
+  {key:'bajnokok',   label:'Bajnokok Kupája',  minEarnings:150000, purse:600000},
+  {key:'klasszikus', label:'Klasszikus',       minEarnings:250000, purse:1200000},
+];
+function bracketFor(earn, hasWon){
+  if(!hasWon) return BRACKETS[0];
+  for(let i=1;i<BRACKETS.length;i++){ if(BRACKETS[i].max===null||earn<BRACKETS[i].max) return BRACKETS[i]; }
+  return BRACKETS[BRACKETS.length-1];
+}
+const PURSE_SPLIT=[0.60,0.20,0.11,0.06,0.03];
+
+/* --- verseny (race_sim.py, hangolt zaj) --- */
+const NOISE_SD = 8.5;
+const STYLE_BONUS = {
+  'korai sebesség':{front:1.030,stalker:1.000,closer:0.972},
+  'kitartás':{front:0.975,stalker:1.000,closer:1.028},
+  'kitartó hajrá':{front:0.980,stalker:1.005,closer:1.022},
+  'semleges':{front:1.000,stalker:1.000,closer:1.000},
+};
+function styleOf(p){
+  const d=(p.accel+p.sprint)-(p.stamina+p.staying);
+  return d>18?'front':(d<-18?'closer':'stalker');
+}
+function distFactor(p,band){ return 0.955 + (1.035-0.955)*clip((p[band]-30)/60,0,1); }
+function freshFactor(f){ return f>=60?1.0:1.0-((60-f)/60)*0.12; }
+function perf(h, race){
+  const base=h.fillBar;
+  const f = base*distFactor(h.profile,race.band)
+          * STYLE_BONUS[race.bias][h.style]
+          * freshFactor(h.freshness)
+          * h.jMod;
+  return f + gauss(0,NOISE_SD);
+}
+
+const NAME_A=['Ash','Bram','Cinder','Dun','Elm','Fen','Grey','Haw','Iron','Kes','Lark',
+  'Mor','Nettle','Oak','Pike','Quill','Rush','Slate','Thorn','Vale','Wren'];
+const NAME_B=['bank','brook','crest','dale','fall','gate','hill','lane','mere','ridge',
+  'shade','stone','wick','wood'];
+const FILL_RANGE={maiden:[46,63],b5:[50,67],b20:[55,72],b75:[61,78],b250:[67,84],open:[73,90]};
+
+function makeNPC(bracketKey, band, surface){
+  const [lo,hi]=FILL_RANGE[bracketKey]||[50,70];
+  const prof={}; TRAITS.forEach(t=>{prof[t]=clip(gauss(58,14),20,99);});
+  const j=makeJockey();
+  return {name:pick(NAME_A)+pick(NAME_B), fillBar:lo+rnd()*(hi-lo), profile:prof,
+    style:styleOf(prof), freshness:70+rnd()*30, jMod:jockeyMod(j,band,surface), npc:true};
+}
+
+function runRace(playerHorse, race){
+  const field=[playerHorse];
+  while(field.length<8) field.push(makeNPC(race.bracket.key, race.band, race.surface));
+  const res=field.map(h=>({h, s:perf(h,race)})).sort((a,b)=>b.s-a.s);
+  res.forEach((r,i)=>r.pos=i+1);
+  return res;
+}
+
+/* =====================================================================
+   GAZDASÁG
+   ===================================================================== */
+const COST = {
+  stable:700, pasture:120, vet:1200,
+  feed:{rossz:120,kozepes:280,jo:480,kivalo:780},
+  concentrate:{none:0,basic:220,full:400},
+  stud:{cheap:1200,mid:3800,elite:11000},
+};
+const JOCKEY_CUT=0.08;
+/* ISTALLO-FEROHELY: ez a fo fek a novekedesen. A jatekos korabban maga
+   javasolta. Felette a leggyengebbeket el kell adni - ez a valos
+   tenyeszeteknel is igy mukodik. */
+const STABLE_CAPACITY=12;
+
+/* TENYESZTOI PREMIUM (francia modell - prime a l'eleveur)
+   A France Galop rendszereben a tenyeszto 15% premiumot kap a ltal
+   tenyesztett lo altal nyert BARMELY dijbol, a lo TELJES verseny-
+   palyafutasa soran - FUGGETLENUL attol, hogy kie a lo.
+     - alapráta 10%, Franciaorszagban fogant lovaknal 15%
+       https://www.bloodhorse.com/horse-racing/articles/121132/
+     - nyilt versenyekben 14% a dijbol + a tulajdonosi premiumbol
+       http://www.leguidedesproprietaires.com/en/primes-et-allocations/
+     - evi tobb mint 30 millio euro kerul igy kiosztasra
+       https://www.frbc.fr/breeders-premiums/
+   A valos francia rendszerben van eves plafon is loankent, DE a
+   jatekban SZANDEKOSAN NINCS: a lo palyafutasa (max 7 szezon) maga a
+   termeszetes korlat, es plafonnal pont azt buntetnenk, amit
+   jutalmazni akarunk - hogy a jatekos KIUGRO lovat neveljen es adjon
+   el. Ez tudatos, dokumentalt elteres a valos szabalytol. */
+const BREEDER_PREMIUM = 0.15;
+
+/* A men kanca-kovetelmenye (stud_sim.py): egy elit men nem fogad
+   barmilyen kancat. Ez gatolja meg, hogy a jatekos az elso szezontol
+   elit vervonalhoz ferjen - eloszor fel kell hoznia a kancait. */
+const STUD_MIN_MARE = {cheap:null, mid:'C', elite:'B+'};
+const GRADE_RANK = ['E','D','C','B-','B','B+','A-','A','A+'];
+function meetsGrade(actual, required){
+  if(!required) return true;
+  return GRADE_RANK.indexOf(actual) >= GRADE_RANK.indexOf(required);
+}
+
+function studQuality(budget){
+  const base={cheap:52,mid:66,elite:80}[budget];
+  const prof={}; TRAITS.forEach(t=>{prof[t]=clip(gauss(base,10),20,99);});
+  return {name:pick(NAME_A)+pick(NAME_B), profile:prof, colorGeno:newColorGeno()};
+}
+
+/* =====================================================================
+   SZEZON-MOTOR
+   ===================================================================== */
+function newMare(weak){
+  const prof={}; TRAITS.forEach(t=>{prof[t]=clip(gauss(weak?48:60,11),20,99);});
+  return {name:pick(NAME_A)+pick(NAME_B), age:5, role:'mare', profile:prof,
+    colorGeno:newColorGeno(), grade:gradeOf(overall(prof)), earnings:0, wins:0, starts:0};
+}
+
+/* A nagyapa hagyateka: ket kanca MELLE ket versenykorbeli lo is jar.
+   Enelkul az elso ket szezonban nincs bevetel, mikozben a koltsegek
+   mennek - a teszt szerint ez biztos csod. Ez az onboarding-megoldas. */
+function starterRacer(trainerOverall, feedPct){
+  const prof={}; TRAITS.forEach(t=>{prof[t]=clip(gauss(54,11),20,99);});
+  const fb=fillBar(overall(prof), feedPct, trainerOverall);
+  return {name:pick(NAME_A)+pick(NAME_B), age:3, role:'racer', profile:prof,
+    colorGeno:newColorGeno(), color:colorOf(newColorGeno()),
+    grade:gradeOf(overall(prof)), fillBar:fb.total, fillParts:fb,
+    style:styleOf(prof),
+    freshness:100, earnings:0, wins:0, starts:0, feedPct:feedPct};
+}
+
+function runCampaign(cfg, logging){
+  SEED = cfg.seed || 12345;
+  const log=[];
+  const trainer0=makeTrainer(cfg.trainerLevel);
+  const startFeed = maternalBonus(cfg.feed,true)
+    + foalBonus(cfg.feed, cfg.concentrate!=='none', cfg.concentrate==='full')
+    + yearBonus(cfg.feed, cfg.concentrate!=='none', cfg.concentrate==='full');
+  const state={
+    money:50000, season:0,
+    mares:[newMare(true), newMare(true)],
+    foals:[], yearlings:[],
+    racers:[starterRacer(trainer0.overall,startFeed), starterRacer(trainer0.overall,startFeed)],
+    totalPrize:0, totalCosts:0, totalSales:0, totalPremium:0,
+    racesRun:0, wins:0, blackType:0, injuries:0, foalsBred:0,
+    soldBred:[],   // a jatekos altal tenyesztett, de ELADOTT lovak
+  };
+  const trainer=trainer0;
+  const jockey=makeJockey();
+
+  const ev=(tag,text,amount)=>{ if(logging) log.push({season:state.season,tag,text,amount}); };
+
+  const conc = cfg.concentrate!=='none';
+  const vit  = cfg.concentrate==='full';
+
+  for(let s=1;s<=cfg.seasons;s++){
+    state.season=s;
+
+    /* --- 1. hét: öregedés, csikók, fedeztetés --- */
+    // yearlingek 2 évesek lesznek → versenyzők
+    state.yearlings.forEach(y=>{
+      y.age=2; y.role='racer';
+      const fb=fillBar(overall(y.profile), y.feedPct, trainer.overall);
+      y.fillBar=fb.total; y.fillParts=fb;
+      y.style=styleOf(y.profile);
+      y.freshness=100; y.earnings=0; y.wins=0; y.starts=0;
+      state.racers.push(y);
+      ev('foal',`${y.name} kétéves lett — versenybe állhat (sáv ${fb.total.toFixed(1)}%)`);
+    });
+    state.yearlings=[];
+
+    // csikók yearlinggé
+    state.foals.forEach(f=>{
+      f.age=1;
+      f.feedPct += yearBonus(cfg.feed,conc,vit);
+      state.yearlings.push(f);
+    });
+    state.foals=[];
+
+    state.racers.forEach(r=>{r.age++;});
+    state.mares.forEach(m=>{m.age++;});
+
+    // fedeztetés
+    state.mares.forEach(m=>{
+      if(m.age>18) return;
+      // ha a kanca nem eri el a valasztott men elvarasat, olcsobbra valt
+      let budget=cfg.studBudget;
+      const mGrade=gradeOf(overall(m.profile));
+      while(budget!=='cheap' && !meetsGrade(mGrade, STUD_MIN_MARE[budget])){
+        budget = (budget==='elite')?'mid':'cheap';
+      }
+      if(budget!==cfg.studBudget){
+        ev('breed',`${m.name} (${mGrade}) nem felel meg a választott mén elvárásának — olcsóbb ménhez került`);
+      }
+      const stud=studQuality(budget);
+      const fee=COST.stud[budget];
+      // egy jatekos nem fedeztet, ha nincs ra tartalek - a szimulacio
+      // is igy viselkedjen, kulonben mesterseges csodoket termel
+      if(state.money < fee*3){ ev('breed',`${m.name} — kihagyott szezon, nincs elég tartalék`); return; }
+      state.money-=fee; state.totalCosts+=fee;
+
+      // vemhesülés (stud_sim.py megengedő ráták)
+      let p=78; if(m.age<11)p*=1.10; else if(m.age>=15)p*=0.85; if(m.age>=18)p*=0.70;
+      if(rnd()*100>p){ ev('breed',`${m.name} × ${stud.name} — nem fogant`, -fee); return; }
+
+      const prof=breedFoal(stud,m);
+      const color=colorOf(breedColor(stud.colorGeno,m.colorGeno));
+      const matBonus=maternalBonus(cfg.feed, true);
+      const foal={
+        name:pick(NAME_A)+pick(NAME_B), age:0, role:'foal', profile:prof,
+        colorGeno:breedColor(stud.colorGeno,m.colorGeno), color:color,
+        grade:gradeOf(overall(prof)),
+        feedPct: matBonus + foalBonus(cfg.feed,conc,vit),
+        bred:true,   // a jatekos tenyesztette -> premium jar utana orokre
+      };
+      state.foals.push(foal); state.foalsBred++;
+      ev('breed',`${m.name} × ${stud.name} → ${foal.name} (${foal.grade}, ${COLOR_HU[color]})`, -fee);
+    });
+
+    /* --- 1. hétvége: yearling-aukció --- */
+    const toSell=[];
+    if(cfg.yearlingPolicy==='sell') toSell.push(...state.yearlings);
+    else if(cfg.yearlingPolicy==='mixed'){
+      state.yearlings.forEach(y=>{ if(overall(y.profile)<58) toSell.push(y); });
+    }
+    toSell.forEach(y=>{
+      const q=overall(y.profile);
+      const price=Math.round(1200 + Math.pow(Math.max(0,q-40),1.9)*11 + y.feedPct*260);
+      state.money+=price; state.totalSales+=price;
+      state.yearlings=state.yearlings.filter(x=>x!==y);
+      // A ELADAS UTAN IS JAR A TENYESZTOI PREMIUM (francia modell):
+      // a lo tovabb versenyez az uj tulajdonosnal, de a 15% a
+      // tenyesztoe marad a teljes palyafutasa alatt.
+      if(y.bred){
+        const fb=fillBar(overall(y.profile), y.feedPct, 55+rnd()*25);
+        state.soldBred.push({name:y.name, grade:y.grade, profile:y.profile,
+          fillBar:fb.total, style:styleOf(y.profile), age:1,
+          earnings:0, seasonsRaced:0});
+      }
+      ev('sale',`${y.name} (${y.grade}) eladva a yearling-árverésen`, price);
+    });
+
+    /* --- 2-4. hét: versenyek --- */
+    state.racers.forEach(h=>{
+      const startsThisSeason = 7;
+      for(let i=0;i<startsThisSeason;i++){
+        if(h.injuredUntil && h.injuredUntil>i) continue;
+        const br=bracketFor(h.earnings, h.wins>0);
+        const track=pick(TRACKS.filter(t=>t.prestige<=Math.max(1,Math.ceil(br.purse/20000)+1)) || TRACKS);
+        const band=pick(track.dist);
+        h.jMod=jockeyMod(jockey,band,track.surface);
+        h.freshness = clip(100 - i*8, 40, 100);
+
+        const race={band, bias:track.bias, surface:track.surface, bracket:br,
+          purse:Math.round(br.purse*(0.6+track.prestige*0.16))};
+        const res=runRace(h, race);
+        const me=res.find(r=>r.h===h);
+        state.racesRun++; h.starts++;
+
+        const share=me.pos<=5?PURSE_SPLIT[me.pos-1]:0;
+        const gross=Math.round(race.purse*share);
+        const net=Math.round(gross*(1-JOCKEY_CUT));
+        h.earnings+=gross; state.money+=net; state.totalPrize+=net;
+        // sajat tenyesztesu lo: a jatekos TULAJDONOS es TENYESZTO is
+        if(h.bred){
+          const prem=Math.round(gross*BREEDER_PREMIUM);
+          state.money+=prem; state.totalPremium+=prem;
+        }
+        if(me.pos===1){ h.wins++; state.wins++; }
+        if(me.pos===1 && race.purse>60000){ state.blackType++; h.blackType=true; }
+
+        if(me.pos===1 && logging){
+          ev('win',`${h.name} nyert — ${track.name}, ${br.label}`, net);
+        }
+
+        // sérülés
+        if(rnd()*100 < injuryRisk(track.surface, h.profile.soundness)){
+          h.injuredUntil=i+2; state.injuries++;
+          h.profile.soundness=Math.max(10,h.profile.soundness-3);
+          ev('vet',`${h.name} megsérült ${track.name} pályán — kihagyás`);
+        }
+      }
+      h.injuredUntil=0;
+
+      /* --- klasszikusok: a szezon vegen, ha a lo eleg jol keresett --- */
+      const eligible=CLASSICS.filter(c=>h.earnings>=c.minEarnings);
+      if(eligible.length){
+        const c=eligible[eligible.length-1];   // a legrangosabb, amire jogosult
+        const track=TRACKS[4];                 // Kingsmere - a bajnoki palya
+        const band=pick(track.dist);
+        h.jMod=jockeyMod(jockey,band,track.surface);
+        h.freshness=92;
+        const race={band, bias:track.bias, surface:track.surface,
+          bracket:BRACKETS[5], purse:c.purse};
+        const res=runRace(h, race);
+        const me=res.find(r=>r.h===h);
+        state.racesRun++; h.starts++;
+        const share=me.pos<=5?PURSE_SPLIT[me.pos-1]:0;
+        const gross=Math.round(race.purse*share);
+        const net=Math.round(gross*(1-JOCKEY_CUT));
+        h.earnings+=gross; state.money+=net; state.totalPrize+=net;
+        if(h.bred && gross>0){
+          const prem=Math.round(gross*BREEDER_PREMIUM);
+          state.money+=prem; state.totalPremium+=prem;
+        }
+        if(me.pos===1){
+          h.wins++; state.wins++; state.blackType++; h.blackType=true;
+          ev('win',`${h.name} MEGNYERTE a(z) ${c.label} futamot!`, net);
+        } else if(me.pos<=3){
+          ev('win',`${h.name} a ${me.pos}. helyen végzett a(z) ${c.label} futamban`, net);
+        }
+      }
+    });
+
+    /* --- eladott, sajat tenyesztesu lovak versenyeznek maskent -
+           a 15% tenyesztoi premium tovabbra is a jatekose --- */
+    state.soldBred.forEach(sb=>{
+      sb.age++;
+      if(sb.age<2) return;              // meg nem versenykoru
+      if(sb.seasonsRaced>=7) return;    // befejezte a palyafutast
+      sb.seasonsRaced++;
+      let seasonPremium=0;
+      for(let i=0;i<6;i++){
+        const br=bracketFor(sb.earnings, sb.earnings>0);
+        const track=pick(TRACKS);
+        const band=pick(track.dist);
+        const j=makeJockey();
+        const runner={...sb, freshness:75+rnd()*25, jMod:jockeyMod(j,band,track.surface)};
+        const race={band, bias:track.bias, surface:track.surface, bracket:br,
+          purse:Math.round(br.purse*(0.6+track.prestige*0.16))};
+        const res=runRace(runner, race);
+        const me=res.find(r=>r.h===runner);
+        const share=me.pos<=5?PURSE_SPLIT[me.pos-1]:0;
+        const gross=Math.round(race.purse*share);
+        sb.earnings+=gross;
+        seasonPremium+=Math.round(gross*BREEDER_PREMIUM);
+      }
+      // az eladott lo is indulhat klasszikusban, ha eleg jol keresett
+      const elig=CLASSICS.filter(c=>sb.earnings>=c.minEarnings);
+      if(elig.length){
+        const c=elig[elig.length-1];
+        const track=TRACKS[4];
+        const band=pick(track.dist);
+        const j=makeJockey();
+        const runner={...sb, freshness:92, jMod:jockeyMod(j,band,track.surface)};
+        const race={band, bias:track.bias, surface:track.surface,
+          bracket:BRACKETS[5], purse:c.purse};
+        const res=runRace(runner, race);
+        const me=res.find(r=>r.h===runner);
+        const share=me.pos<=5?PURSE_SPLIT[me.pos-1]:0;
+        const gross=Math.round(race.purse*share);
+        sb.earnings+=gross;
+        seasonPremium+=Math.round(gross*BREEDER_PREMIUM);
+        if(me.pos===1) ev('win',`${sb.name} (eladva) megnyerte a(z) ${c.label} futamot — a prémium a tiéd`);
+      }
+      if(seasonPremium>0){
+        state.money+=seasonPremium; state.totalPremium+=seasonPremium;
+        ev('prem',`${sb.name} (eladva) tenyésztői prémiuma`, seasonPremium);
+      }
+    });
+    state.soldBred=state.soldBred.filter(sb=>sb.seasonsRaced<7);
+
+    /* --- szezonzárás: költségek --- */
+    const racers = state.racers.length;
+    const others = state.mares.length+state.foals.length+state.yearlings.length;
+    const headcount = racers+others;
+    // a nem-versenyzo lovak olcsobbak: nincs treningterheles, kisebb adag
+    const upkeep = racers*COST.stable + others*Math.round(COST.stable*0.55);
+    const feedUnit = COST.feed[cfg.feed]+COST.concentrate[cfg.concentrate];
+    const feedCost = racers*feedUnit + others*Math.round(feedUnit*0.6);
+    const trainerCost = racers*trainer.fee;
+    const total = upkeep+feedCost+trainerCost;
+    state.money-=total; state.totalCosts+=total;
+    ev('buy',`Szezonzárás: ${headcount} ló tartása, tréner, takarmány`, -total);
+
+    // öreg versenylovak nyugdíjazása / kancává válás
+    state.racers=state.racers.filter(h=>{
+      if(h.age>=9){
+        if(state.mares.length<6){
+          h.role='mare'; h.age=h.age; state.mares.push(h);
+          ev('sale',`${h.name} befejezte a versenypályafutást — tenyészkancaként marad`);
+        } else {
+          const price=Math.round(2000+h.earnings*0.35);
+          state.money+=price; state.totalSales+=price;
+          ev('sale',`${h.name} eladva tenyészállatként`, price);
+        }
+        return false;
+      }
+      return true;
+    });
+    state.mares=state.mares.filter(m=>{
+      if(m.age>20){ ev('sale',`${m.name} nyugdíjba vonult`); return false; }
+      return true;
+    });
+
+    /* --- ferohely-korlat: a felesleget eladjuk --- */
+    let total_head = state.mares.length+state.foals.length+state.yearlings.length+state.racers.length;
+    while(total_head>STABLE_CAPACITY){
+      // a leggyengebb versenylo vagy yearling megy
+      const pool=[...state.racers.map(h=>({h,l:'racers'})), ...state.yearlings.map(h=>({h,l:'yearlings'}))];
+      if(!pool.length) break;
+      pool.sort((a,b)=>overall(a.h.profile)-overall(b.h.profile));
+      const worst=pool[0];
+      const q=overall(worst.h.profile);
+      const price=Math.round(1500+Math.pow(Math.max(0,q-40),1.9)*9+(worst.h.earnings||0)*0.3);
+      state.money+=price; state.totalSales+=price;
+      state[worst.l]=state[worst.l].filter(x=>x!==worst.h);
+      ev('sale',`${worst.h.name} eladva — betelt az istálló (${STABLE_CAPACITY} férőhely)`, price);
+      total_head--;
+    }
+
+    if(state.money<0){ ev('vet',`CSŐD — a kassza mínuszba fordult`); break; }
+  }
+
+  return {state, log, trainer, jockey};
+}
+
+/* =====================================================================
+   MEGJELENÍTÉS
+   ===================================================================== */
+const fmt=n=>Math.round(n).toLocaleString('hu-HU').replace(/,/g,' ');
+
+function readCfg(){
+  return {
+    seasons:+document.getElementById('seasons').value,
+    feed:document.getElementById('feedStrategy').value,
+    concentrate:document.getElementById('concentrate').value,
+    studBudget:document.getElementById('studBudget').value,
+    trainerLevel:document.getElementById('trainerLevel').value,
+    yearlingPolicy:document.getElementById('yearlingPolicy').value,
+    seed:Math.floor(Math.random()*1e9),
+  };
+}
+
+function render(out, cfg){
+  const st=out.state;
+  const profit = st.money-50000;
+
+  document.getElementById('resultPanel').style.display='block';
+  document.getElementById('stablePanel').style.display='block';
+  document.getElementById('logPanel').style.display='block';
+  document.getElementById('comparePanel').style.display='none';
+
+  document.getElementById('ledger').innerHTML=`
+    <div class="cell"><div class="k">Kassza</div><div class="v ${st.money>=50000?'pos':'neg'}">${fmt(st.money)}</div></div>
+    <div class="cell"><div class="k">Eredmény</div><div class="v ${profit>=0?'pos':'neg'}">${profit>=0?'+':''}${fmt(profit)}</div></div>
+    <div class="cell"><div class="k">Versenydíj</div><div class="v">${fmt(st.totalPrize)}</div></div>
+    <div class="cell"><div class="k">Eladások</div><div class="v">${fmt(st.totalSales)}</div></div>
+    <div class="cell"><div class="k">Tenyésztői prémium</div><div class="v pos">${fmt(st.totalPremium)}</div></div>
+    <div class="cell"><div class="k">Kiadások</div><div class="v neg">${fmt(st.totalCosts)}</div></div>
+    <div class="cell"><div class="k">Futamok</div><div class="v">${st.racesRun}</div></div>
+    <div class="cell"><div class="k">Győzelem</div><div class="v">${st.wins}</div></div>
+    <div class="cell"><div class="k">Csikó</div><div class="v">${st.foalsBred}</div></div>`;
+
+  const winPct = st.racesRun? (st.wins/st.racesRun*100).toFixed(1):'0';
+  let verdictText='';
+  if(st.money<0) verdictText='A gazdaság <strong>nem áll össze</strong> ezzel a stratégiával — a kassza kiürült.';
+  else if(profit<0) verdictText='Veszteséges szezonok. A bevétel nem fedezi a tartás és tréner költségét.';
+  else if(profit<20000) verdictText='Szűken nyereséges. Működik, de lassan épül.';
+  else verdictText='Egészségesen nyereséges — a stratégia működik.';
+
+  document.getElementById('verdict').innerHTML=`
+    <div class="verdict">
+      <h3>${cfg.seasons} szezon után</h3>
+      <p>${verdictText}</p>
+      <p>Győzelmi arány: <strong>${winPct}%</strong> · Sérülés: ${st.injuries} · Black type győzelem: ${st.blackType}</p>
+      <p>Tenyésztői prémium (15%, francia modell): <strong>${fmt(st.totalPremium)} B$</strong>${
+        st.totalPremium>0 && st.totalPrize>0 ? ` — a saját versenydíj ${(st.totalPremium/st.totalPrize*100).toFixed(0)}%-a`:''}
+        ${st.soldBred.length? ` · ${st.soldBred.length} eladott ló még fizet` : ''}</p>
+      <p>Tréner: ${out.trainer.grade} · Zsoké: ${out.jockey.grade}</p>
+    </div>`;
+
+  const all=[...st.racers.map(h=>({...h,r:'versenyló'})), ...st.mares.map(h=>({...h,r:'kanca'})),
+             ...st.yearlings.map(h=>({...h,r:'yearling'})), ...st.foals.map(h=>({...h,r:'csikó'}))];
+  document.getElementById('stableTable').innerHTML= all.length? `
+    <table><thead><tr><th>Név</th><th>Szerep</th><th>Kor</th><th>Index</th><th>Szín</th>
+    <th class="num">Sáv</th><th class="num">Nyeremény</th></tr></thead><tbody>
+    ${all.map(h=>`<tr><td>${h.name}</td><td>${h.r}</td><td>${h.age}</td>
+      <td>${h.grade||gradeOf(overall(h.profile))}</td>
+      <td>${h.color?COLOR_HU[h.color]:'—'}</td>
+      <td class="num">${h.fillBar?h.fillBar.toFixed(1)+'%':'—'}</td>
+      <td class="num">${h.earnings?fmt(h.earnings):'—'}</td></tr>`).join('')}
+    </tbody></table>` : '<p class="note">Az állomány kiürült.</p>';
+
+  const logEl=document.getElementById('log');
+  let html=''; let cur=-1;
+  out.log.forEach(e=>{
+    if(e.season!==cur){ cur=e.season; html+=`<div class="season">${cur}. szezon</div>`; }
+    const amt = e.amount!==undefined ?
+      `<span class="money ${e.amount>=0?'pos':'neg'}">${e.amount>=0?'+':''}${fmt(e.amount)}</span>`:'';
+    html+=`<div class="ev"><span class="tag ${e.tag}">${e.tag}</span><span>${e.text} ${amt}</span></div>`;
+  });
+  logEl.innerHTML=html||'<p class="note">Nincs esemény.</p>';
+}
+
+document.getElementById('runBtn').addEventListener('click',()=>{
+  const cfg=readCfg();
+  const out=runCampaign(cfg,true);
+  render(out,cfg);
+  document.getElementById('resultPanel').scrollIntoView({behavior:'smooth'});
+});
+
+document.getElementById('compareBtn').addEventListener('click',()=>{
+  const btn=document.getElementById('compareBtn');
+  btn.disabled=true; btn.textContent='Számolás…';
+  setTimeout(()=>{
+    const strategies=[
+      {label:'Minimalista', feed:'rossz', concentrate:'none', studBudget:'cheap', trainerLevel:'cheap', yearlingPolicy:'sell'},
+      {label:'Kereskedő',   feed:'jo',    concentrate:'full', studBudget:'mid',   trainerLevel:'cheap', yearlingPolicy:'sell'},
+      {label:'Kiegyensúlyozott', feed:'jo', concentrate:'full', studBudget:'mid', trainerLevel:'mid', yearlingPolicy:'keep'},
+      {label:'Elit tenyésztő', feed:'kivalo', concentrate:'full', studBudget:'elite', trainerLevel:'top', yearlingPolicy:'keep'},
+      {label:'Csak futtató', feed:'kozepes', concentrate:'basic', studBudget:'cheap', trainerLevel:'top', yearlingPolicy:'sell'},
+    ];
+    const RUNS=40;
+    function measure(s, seasons){
+      const profits=[]; let bankrupt=0, w=0, r=0;
+      for(let i=0;i<RUNS;i++){
+        const out=runCampaign({...s, seasons, seed:1000+i*77},false);
+        profits.push(out.state.money-50000);
+        if(out.state.money<0) bankrupt++;
+        w+=out.state.wins; r+=out.state.racesRun;
+      }
+      profits.sort((a,b)=>a-b);
+      const mean=profits.reduce((a,b)=>a+b,0)/profits.length;
+      const sd=Math.sqrt(profits.reduce((a,b)=>a+Math.pow(b-mean,2),0)/profits.length);
+      return {mean, sd, med:profits[Math.floor(RUNS/2)], min:profits[0],
+        max:profits[RUNS-1], bankrupt, winPct: r? w/r*100:0};
+    }
+    const rows=strategies.map(s=>({label:s.label, s6:measure(s,6), s12:measure(s,12)}));
+    rows.sort((a,b)=>b.s12.mean-a.s12.mean);
+
+    const cellCol = v => v>=0?'#46654B':'#9E3324';
+    document.getElementById('compareTable').innerHTML=`
+      <table><thead><tr>
+        <th>Stratégia</th><th class="num">Győz%</th>
+        <th class="num">6 szezon</th><th class="num">12 szezon</th>
+        <th class="num">Szórás (12)</th><th class="num">Legrosszabb</th>
+        <th class="num">Legjobb</th><th class="num">Csőd</th>
+      </tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${r.label}</td>
+        <td class="num">${r.s12.winPct.toFixed(1)}%</td>
+        <td class="num" style="color:${cellCol(r.s6.mean)}">${r.s6.mean>=0?'+':''}${fmt(r.s6.mean)}</td>
+        <td class="num" style="color:${cellCol(r.s12.mean)}"><strong>${r.s12.mean>=0?'+':''}${fmt(r.s12.mean)}</strong></td>
+        <td class="num">${fmt(r.s12.sd)}</td>
+        <td class="num">${fmt(r.s12.min)}</td><td class="num">${fmt(r.s12.max)}</td>
+        <td class="num">${r.s12.bankrupt}/${RUNS}</td></tr>`).join('')}
+      </tbody></table>`;
+    document.getElementById('comparePanel').style.display='block';
+    document.getElementById('resultPanel').style.display='none';
+    document.getElementById('stablePanel').style.display='none';
+    document.getElementById('logPanel').style.display='none';
+    btn.disabled=false; btn.textContent='Stratégiák összehasonlítása (6 és 12 szezon × 40 futtatás)';
+    document.getElementById('comparePanel').scrollIntoView({behavior:'smooth'});
+  },50);
+});
+</script>
+</body>
+</html>

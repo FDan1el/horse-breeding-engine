@@ -1,0 +1,131 @@
+name: Breeder Tycoon — motorok futtatása
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ---------------------------------------------------------------
+  # JÁTÉKMOTOROK — mindegyik saját validációval fut.
+  # Ha bármelyik validáció elbukik, a modul nem-nulla kóddal
+  # kilép, és a workflow pirosra vált.
+  # ---------------------------------------------------------------
+  engines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Tenyésztés
+        run: python3 breeding_sim.py
+
+      - name: Takarmányozás
+        run: python3 feeding_sim.py
+
+      - name: Tréner
+        run: python3 trainer_sim.py
+
+      - name: Zsoké
+        run: python3 jockey_sim.py
+
+      - name: Ménkönyv
+        run: python3 stud_sim.py
+
+      - name: Női család
+        run: python3 family_sim.py
+
+      - name: Férőhely és termékenység
+        run: python3 stabling_sim.py
+
+      - name: Életciklus
+        run: python3 lifecycle_sim.py
+
+      - name: Szezonnaptár
+        run: python3 season_sim.py
+
+      - name: Pálya és nyereménysávok
+        run: python3 track_sim.py
+
+      - name: Versenyszimuláció
+        run: python3 race_sim.py
+
+      - name: Hirdetés és katalógus
+        run: python3 listing_sim.py
+
+      - name: Aukciós házak
+        run: python3 auction_sim.py
+
+      - name: Napi piactér
+        run: python3 marketplace_sim.py
+
+      - name: Farm és infrastruktúra
+        run: python3 farm_sim.py
+
+      - name: Integritás és csalásvédelem
+        run: python3 integrity_sim.py
+
+      # ELVETETT MODUL (GDD 10.6) — a fájl referenciaként a repóban
+      # marad, de nem futtatjuk.
+      # - name: Claiming (elvetve)
+      #   run: python3 claiming_sim.py
+
+  # ---------------------------------------------------------------
+  # TERVEZÉSI MODELLEK — nem játéklogika, hanem üzemeltetési
+  # számítás. Minden push után kiírja a kapacitás-számokat.
+  # ---------------------------------------------------------------
+  planning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Adatarchitektúra
+        run: python3 data_architecture.py
+
+      - name: Kapacitásmodell (20 000 játékos)
+        run: python3 capacity_model.py
+
+      - name: Versenynaptár-modell
+        run: python3 schedule_model.py
+
+  # ---------------------------------------------------------------
+  # SÉMA-ELLENŐRZÉS — valódi PostgreSQL-en lefuttatjuk a schema.sql-t,
+  # hogy kiderüljön, ha elgépelés vagy sorrendi hiba van benne.
+  # ---------------------------------------------------------------
+  schema:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: breedertycoon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Séma betöltése
+        env:
+          PGPASSWORD: test
+        run: |
+          psql -h localhost -U postgres -d breedertycoon \
+               -v ON_ERROR_STOP=1 -f schema.sql
+
+      - name: Táblák ellenőrzése
+        env:
+          PGPASSWORD: test
+        run: |
+          psql -h localhost -U postgres -d breedertycoon -c "\dt"

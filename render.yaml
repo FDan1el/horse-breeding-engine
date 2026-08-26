@@ -1,0 +1,21 @@
+# Render.com konfiguráció — Breeder Tycoon
+#
+# HASZNÁLAT:
+#   1. Töltsd fel a repót GitHubra (már megvan)
+#   2. render.com → New → Web Service → Connect a repóhoz
+#   3. A Render ezt a fájlt automatikusan felismeri
+#   4. Minden push után magától újratelepül
+#
+# NINCS FÜGGŐSÉG: a szerver kizárólag beépített Python modulokat
+# használ, ezért nincs requirements.txt és nincs build lépés.
+
+services:
+  - type: web
+    name: breeder-tycoon
+    runtime: python
+    plan: free
+    buildCommand: ""
+    startCommand: "python3 server.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"

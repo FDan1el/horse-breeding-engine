@@ -1,0 +1,8 @@
+# Breeder Tycoon — nincs külső függőség.
+#
+# A server.py kizárólag beépített Python modulokat használ
+# (http.server, json, os, random, uuid), ezért ez a fájl üres.
+#
+# Azért létezik mégis, mert a Render alapértelmezett Python
+# build-parancsa `pip install -r requirements.txt`, és e nélkül
+# a telepítés hibára fut.
